@@ -9,7 +9,7 @@
   },
   "homepage": "https://github.com/lucianHymer/double-shot",
   "repository": "https://github.com/lucianHymer/double-shot",
-  "license": "FSL-1.1-MIT",
+  "license": "AGPL-3.0-only",
   "keywords": [
     "orchestration",
     "workflows",

@@ -42,5 +42,4 @@ to green and reports back with the diff.
 
 ## License
 
-Functional Source License, Version 1.1, converting to MIT three years after
-publication. See [LICENSE](LICENSE).
+GNU Affero General Public License v3.0. See [LICENSE](LICENSE).
