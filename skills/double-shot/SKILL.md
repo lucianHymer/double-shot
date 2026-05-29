@@ -41,17 +41,17 @@ You are the **orchestrator**: you understand the plan, align with the user, and 
 
 ## Invoking the bundled workflows
 
-The two workflows ship with this plugin in `workflows/` (a sibling of this skill's directory). Prefer the bundled copies so it's self-contained — resolve the plugin root from this skill's location (`${CLAUDE_PLUGIN_ROOT}` if available) and pass an absolute path:
+The two workflow scripts are bundled **inside this skill's own directory**, under `workflows/`, so they travel with the skill however it's installed. Invoke them via the Workflow tool's `scriptPath`, resolving this skill's directory (`${CLAUDE_SKILL_DIR}` when your harness exposes it):
 
 ```
-Workflow({ scriptPath: "<plugin-root>/workflows/plan-to-blueprint.js",
+Workflow({ scriptPath: "${CLAUDE_SKILL_DIR}/workflows/plan-to-blueprint.js",
            args: { planPath, repoPath, stack, scope, constraints } })
 
-Workflow({ scriptPath: "<plugin-root>/workflows/build-from-blueprint.js",
+Workflow({ scriptPath: "${CLAUDE_SKILL_DIR}/workflows/build-from-blueprint.js",
            args: { blueprintPath, repoPath, envPrefix } })   // envPrefix carries shell setup, e.g. PATH
 ```
 
-If the user has also copied the two `.js` files into `~/.claude/workflows/`, you can invoke by name instead: `Workflow({ name: "plan-to-blueprint", args: {…} })` (this also surfaces them as `/`-commands). Each workflow runs in the background and returns one structured result; you'll be notified on completion.
+If `${CLAUDE_SKILL_DIR}` isn't available, resolve this installed skill's absolute path (e.g. `~/.claude/skills/double-shot/workflows/…`), or copy the two `.js` files into `~/.claude/workflows/` and invoke by name: `Workflow({ name: "plan-to-blueprint", args: {…} })`. Each workflow runs in the background and returns one structured result; you'll be notified on completion.
 
 ## Operating principles (don't skip these)
 

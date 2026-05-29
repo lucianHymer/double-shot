@@ -37,25 +37,37 @@ The **feedback gate between the two phases** is the point: you steer once, at th
 | Path | What |
 |---|---|
 | `skills/double-shot/SKILL.md` | The orchestration procedure the main agent follows (understand → align → phase 1 → gate → phase 2 → verify → report). The front door (`/double-shot`). |
-| `workflows/plan-to-blueprint.js` | **Phase 1** — fan-out research + design → `BLUEPRINT.md`. |
-| `workflows/build-from-blueprint.js` | **Phase 2** — derive the module DAG, build the foundation + verify the crown-jewel, build modules in disjoint-file waves, loop to green, adversarial review + triage. |
+| `skills/double-shot/workflows/plan-to-blueprint.js` | **Phase 1** — fan-out research + design → `BLUEPRINT.md`. |
+| `skills/double-shot/workflows/build-from-blueprint.js` | **Phase 2** — derive the module DAG, build the foundation + verify the crown-jewel, build modules in disjoint-file waves, loop to green, adversarial review + triage. |
 
 The skill is the brain; the workflows are the hands.
 
 ## Install
 
+As a Claude Code plugin, straight from GitHub:
+
+```
+/plugin marketplace add lucianHymer/double-shot
+/plugin install double-shot@double-shot
+```
+
+Then use it with `/double-shot`. The two workflow scripts live inside the skill directory, so they install with it.
+
+<details><summary>Alternatives</summary>
+
 ```bash
-# from a local clone (for testing)
+# add the marketplace from a local clone instead of GitHub:
 claude plugin marketplace add /path/to/double-shot
 claude plugin install double-shot@double-shot
 
-# the skill is then available as a slash command
-/double-shot
+# or install just the skill via the cross-agent installer (vercel-labs/skills):
+npx skills add lucianHymer/double-shot
 ```
+</details>
 
-> **Note on the workflows:** Claude Code plugins don't yet have a documented mechanism to auto-register Workflow scripts, so the skill invokes the bundled `workflows/*.js` by path. For `Workflow({ name: … })` invocation (and to surface them as their own `/`-commands), also copy them into your user workflows dir:
+> The skill invokes its two bundled workflows by `scriptPath` from inside the installed skill directory (`~/.claude/skills/double-shot/workflows/`). To also get `Workflow({ name: … })` / standalone `/`-command access, copy them to your user workflows dir:
 > ```bash
-> cp workflows/*.js ~/.claude/workflows/
+> cp ~/.claude/skills/double-shot/workflows/*.js ~/.claude/workflows/
 > ```
 
 ## Usage
