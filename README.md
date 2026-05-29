@@ -4,7 +4,7 @@
 
 <h1 align="center">double-shot</h1>
 
-<p align="center"><em>From a plan/design doc to a built, tested, reviewed product — two phases, one feedback gate between.</em></p>
+<p align="center"><em>Like one-shot, but better.</em></p>
 
 ---
 
