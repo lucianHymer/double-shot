@@ -51,7 +51,7 @@ As a Claude Code plugin, straight from GitHub:
 /plugin install double-shot@double-shot
 ```
 
-Then use it with `/double-shot`. The two workflow scripts live inside the skill directory, so they install with it.
+Then just **tell your agent to double-shot a plan** — e.g. *"build the whole thing from `PLAN.md`"*. The skill triggers from its description (and shows up as a slash command once installed). Its two workflow scripts live inside the skill, so they install with it — no extra setup.
 
 <details><summary>Alternatives</summary>
 
@@ -65,10 +65,7 @@ npx skills add lucianHymer/double-shot
 ```
 </details>
 
-> The skill invokes its two bundled workflows by `scriptPath` from inside the installed skill directory (`~/.claude/skills/double-shot/workflows/`). To also get `Workflow({ name: … })` / standalone `/`-command access, copy them to your user workflows dir:
-> ```bash
-> cp ~/.claude/skills/double-shot/workflows/*.js ~/.claude/workflows/
-> ```
+> The two workflows ship **inside the skill** — verified: on install they land alongside `SKILL.md` (in the plugin's skill dir), and the skill invokes them by path via `${CLAUDE_SKILL_DIR}`. No copying, no extra setup.
 
 ## Usage
 
