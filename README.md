@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/double-shot.png" alt="double-shot" width="640">
+  <img src="assets/double-shot.png" alt="double-shot" width="320">
 </p>
 
 <h1 align="center">double-shot</h1>
