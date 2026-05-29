@@ -1,2 +1,0 @@
-Place the README hero image here as double-shot.png (or .gif).
-The README references assets/double-shot.png
