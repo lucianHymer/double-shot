@@ -11,11 +11,13 @@ export const meta = {
 }
 
 // args: { planPath (required), repoPath?, stack?, scope?, constraints? }
-const planPath = args && args.planPath
-const repoPath = (args && args.repoPath) || '.'
-const stack = (args && args.stack) || 'choose the best fit for this plan and justify the choice'
-const scope = (args && args.scope) || 'the full core software described by the plan, with external services abstracted behind interfaces plus deterministic fakes for tests'
-const constraints = (args && args.constraints) || 'none specified beyond the plan'
+// Some harnesses deliver `args` as a JSON string rather than a parsed object; normalize either way.
+const A = (typeof args === 'string') ? JSON.parse(args) : (args || {})
+const planPath = A.planPath
+const repoPath = A.repoPath || '.'
+const stack = A.stack || 'choose the best fit for this plan and justify the choice'
+const scope = A.scope || 'the full core software described by the plan, with external services abstracted behind interfaces plus deterministic fakes for tests'
+const constraints = A.constraints || 'none specified beyond the plan'
 
 if (!planPath) throw new Error('args.planPath is required (absolute path to the plan/design doc)')
 

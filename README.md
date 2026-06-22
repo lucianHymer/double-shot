@@ -4,104 +4,59 @@
 
 <h1 align="center">double-shot</h1>
 
-<p align="center"><em>Like one-shot, but better.</em></p>
+<p align="center"><em>Like one-shotting, but better.</em></p>
 
 ---
 
-**double-shot** is a Claude Code plugin for taking a substantial plan/design document all the way to a built, green, reviewed codebase — without the orchestrating agent doing the heavy lifting by hand. The human and the main agent stay in the loop to *understand, align, and gate*; two background **workflows** do the parallel building and adversarially verify their own work.
+**double-shot** is a plugin for **Claude Code** that takes a plan document all
+the way to a built, tested, reviewed codebase. You write the plan and steer once
+at the blueprint; two background Claude Code workflows do the parallel building
+and adversarially verify their own work.
 
-## Status
-
-**v0.1 — patterns proven, packaged scripts not yet re-validated.** The *approach* here is battle-tested: it built a ~24k-line dual-backend product end-to-end and caught real bugs (a credential-forgery hole, a chain-corrupting timestamp bug, two audience-leak paths) via adversarial review. But the two bundled workflows were **extracted and generalized from those runs** — `build-from-blueprint` in particular consolidates several project-specific workflows into one parameterized script that hasn't itself been run end-to-end yet. **Dogfood it on a small throwaway project before relying on it.**
-
-## The two phases
-
-```
-[ understand the plan + align with you ]          ← conversation
-            │
-   PHASE 1 ─ plan-to-blueprint     research the toolchain, design the hard
-            │                       subsystems → a concrete BLUEPRINT.md
-            ▼
-[ review the blueprint ]                          ← your feedback gate
-            │
-   PHASE 2 ─ build-from-blueprint  scaffold → build modules in waves (each
-            │                       adversarially verified) → loop to green
-            ▼                       → security / correctness / simplification review
-[ verify on disk + report ]                       ← back to you
-```
-
-The **feedback gate between the two phases** is the point: you steer once, at the blueprint, then the build runs beginning-to-end on its own.
-
-## What's inside
-
-| Path | What |
-|---|---|
-| `skills/double-shot/SKILL.md` | The orchestration procedure the main agent follows (understand → align → phase 1 → gate → phase 2 → verify → report). The front door (`/double-shot`). |
-| `skills/double-shot/workflows/plan-to-blueprint.js` | **Phase 1** — fan-out research + design → `BLUEPRINT.md`. |
-| `skills/double-shot/workflows/build-from-blueprint.js` | **Phase 2** — derive the module DAG, build the foundation + verify the crown-jewel, build modules in disjoint-file waves, loop to green, adversarial review + triage. |
-| `skills/americano/SKILL.md` | **Americano** — the watered-down double-shot (`/americano`): a lighter front door for an *already-aligned, bounded* change to a *green* repo. |
-| `skills/americano/workflows/americano-plan.js` | Americano Phase 1 — bounded research + one design pass/dimension + one adversarial critique → a build-ready blueprint (lighter than `plan-to-blueprint`). |
-| `skills/americano/workflows/americano-build.js` | Americano Phase 2 — trimmed `build-from-blueprint`: confirm green baseline (**no** scaffold/foundation), build the waves, loop to green, adversarial review. |
-
-The skill is the brain; the workflows are the hands.
-
-## Americano — when the full ceremony is overkill
-
-`double-shot` assumes a cold start and earns its heavy up-front pass (research tournament, scaffold + crown-jewel verify) on big or greenfield work. **`americano`** is its watered-down sibling for when you've *already* hashed out the design and the change is **bounded + lands in a green repo** — the full ceremony would be overkill.
-
-| | double-shot | americano |
-|---|---|---|
-| Use when | greenfield · new foundation · big/risky · needs max rigor | design already aligned · bounded change to a green repo |
-| Phase 1 | full `plan-to-blueprint` (design tournament, loop-until-dry) | bounded `americano-plan` (one design pass/dim, one critique) |
-| Phase 2 | `build-from-blueprint` (scaffold + freeze + crown-jewel verify, then waves) | `americano-build` (confirm green baseline — **no scaffold** — then waves) |
-
-The axis is **how much rigor the change warrants**, not greenfield-vs-brownfield — double-shot is great in mature repos too. If a bounded change turns out bigger than it looked, switch up to double-shot mid-stream. Installing this plugin gives you **both** (`/double-shot` and `/americano`).
-
-> **Dogfooded:** `americano-build` took a real, no-merge-invariant-adjacent feature to a **505-test green** autonomously, and the adversarial review caught a genuine cross-user bug it then fixed.
+It works for any stack, but shines when your plan has a **checkable invariant** —
+a core property the build can mechanically prove it didn't break. **Rust is a
+great fit:** its type system can make the invariant *structural*, so a violation
+becomes a compile error and the adversarial verifier gets an objective answer.
 
 ## Install
 
-As a Claude Code plugin, straight from GitHub:
+A Claude Code plugin, straight from GitHub:
 
 ```
 /plugin marketplace add lucianHymer/double-shot
 /plugin install double-shot@double-shot
 ```
 
-Then just **tell your agent to double-shot a plan** — e.g. *"build the whole thing from `PLAN.md`"*. The skill triggers from its description (and shows up as a slash command once installed). Its two workflow scripts live inside the skill, so they install with it — no extra setup.
+## Use it
 
-<details><summary>Alternatives</summary>
+1. **Write a detailed plan** as a markdown file — with Claude Code, Claude
+   Desktop, or however you like. The more concrete the better.
 
-```bash
-# add the marketplace from a local clone instead of GitHub:
-claude plugin marketplace add /path/to/double-shot
-claude plugin install double-shot@double-shot
+2. **In Claude Code, point double-shot at it:**
 
-# or install just the skill via the cross-agent installer (vercel-labs/skills):
-npx skills add lucianHymer/double-shot
-```
-</details>
+   > *Use double-shot to implement `plan_xyz.md`*
 
-> The two workflows ship **inside the skill** — verified: on install they land alongside `SKILL.md` (in the plugin's skill dir), and the skill invokes them by path via `${CLAUDE_SKILL_DIR}`. No copying, no extra setup.
+That's it. The agent reads your plan, aligns with you on the open decisions,
+produces a blueprint and **stops to show you**, then — on your go — builds it
+to green and reports back with the diff.
 
-## Usage
+## Americano — the lighter pour
 
-Point it at a plan doc:
+Installing the plugin also gives you **`americano`** (`/americano`) — the same
+two-phase shape, watered down for an *already-aligned, bounded* change landing in
+a *green* repo, where double-shot's full up-front pass (research tournament,
+scaffold + crown-jewel verify) is overkill. Its build skips the greenfield
+scaffold and goes straight to the waves.
 
-> `/double-shot` — then: *"Take `design/my-plan.md` to a built product."*
+Reach for **double-shot** on greenfield / new-foundation / max-rigor work; reach
+for **americano** when the design's already settled and the change is bounded.
+The axis is *how much rigor the change warrants* — double-shot is great in mature
+repos too.
 
-Or just describe it: *"build the whole thing from `PLAN.md`."* The agent reads the plan, aligns with you on the open decisions (stack, scope, deployment), produces the blueprint, **stops and shows it to you**, then — on your go — builds it to green and reports with the diff.
-
-## Lessons baked in
-
-These came from real runs that built ~24k lines of verified code:
-
-- **Verify the foundation before fanning out.** A builder once shipped a credential-forgery hole that only a *fresh adversarial verifier* caught.
-- **The review catches what green tests miss.** A chain-corrupting timestamp bug and two audience-leak paths survived a 276-test green suite until the adversarial review found them.
-- **Spike risky dependencies first.** A "dead" embedded-DB extension turned out obtainable and buildable — but only a throwaway probe proved it before committing the port.
-- **Keep heavy/optional pieces feature-gated** so the default build and CI stay fast.
+> Dogfooded: `americano-build` took a real, no-merge-invariant-adjacent feature
+> to a **505-test green** autonomously, and the adversarial review caught a
+> genuine cross-user bug it then fixed.
 
 ## License
 
-Functional Source License, Version 1.1, with an MIT future license — converting
-to MIT three years after publication. See [LICENSE](LICENSE).
+GNU Affero General Public License v3.0. See [LICENSE](LICENSE).

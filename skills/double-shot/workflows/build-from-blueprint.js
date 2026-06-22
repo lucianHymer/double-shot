@@ -12,12 +12,14 @@ export const meta = {
 }
 
 // args: { blueprintPath (required), repoPath?, buildCmd?, testCmd?, envPrefix?, constraints? }
-const blueprintPath = args && args.blueprintPath
-const repoPath = (args && args.repoPath) || '.'
-const envPrefix = (args && args.envPrefix) || ''          // e.g. 'export PATH="$HOME/.cargo/bin:$PATH";'
-const buildCmdHint = (args && args.buildCmd) || 'auto-detect from the blueprint/repo'
-const testCmdHint = (args && args.testCmd) || 'auto-detect from the blueprint/repo'
-const constraints = (args && args.constraints) || 'none beyond the blueprint'
+// Some harnesses deliver `args` as a JSON string rather than a parsed object; normalize either way.
+const A = (typeof args === 'string') ? JSON.parse(args) : (args || {})
+const blueprintPath = A.blueprintPath
+const repoPath = A.repoPath || '.'
+const envPrefix = A.envPrefix || ''          // e.g. 'export PATH="$HOME/.cargo/bin:$PATH";'
+const buildCmdHint = A.buildCmd || 'auto-detect from the blueprint/repo'
+const testCmdHint = A.testCmd || 'auto-detect from the blueprint/repo'
+const constraints = A.constraints || 'none beyond the blueprint'
 if (!blueprintPath) throw new Error('args.blueprintPath is required (absolute path to the blueprint)')
 
 const PLAN_SCHEMA = {
@@ -30,7 +32,7 @@ const PLAN_SCHEMA = {
     crown_jewel: { type: 'string', description: 'The security-critical / core-invariant component to verify hardest, AND the exact invariant to assert.' },
     risky_deps: { type: 'array', items: { type: 'string' }, description: 'External deps/toolchain needing an up-front spike/bake-off before building (or empty).' },
     waves: {
-      type: 'array', description: 'Ordered build waves (barrier between waves). Modules within a wave touch DISJOINT files and build in parallel.',
+      type: 'array', description: 'Ordered build waves (barrier between waves). DEFAULT TO SERIAL: prefer fewer, coarser steps — typically ONE module per wave — because most projects are a near-linear dependency chain. Put MULTIPLE modules in one wave (they run in parallel) ONLY when they are genuinely independent (disjoint files, no compile-time dependency on each other) AND each is substantial enough that a dedicated, focused agent context is worth more than the coordination + shared build-lock overhead. Group small or tightly-coupled files into a single module that one agent builds in sequence. Fan-out buys CONTEXT ISOLATION, not wall-clock (a single-crate build shares one target-dir lock, so concurrent builds mostly serialize anyway).',
       items: {
         type: 'object', additionalProperties: false,
         properties: {
@@ -57,7 +59,7 @@ const FINDINGS = { type: 'object', additionalProperties: false, properties: { di
 
 phase('Plan')
 const plan = await agent(
-  `Read the blueprint at ${blueprintPath} IN FULL (repo: ${repoPath}). Produce a concrete build plan: the build command + test command (hints: build=${buildCmdHint}, test=${testCmdHint}; env-prefix hint: ${JSON.stringify(envPrefix)}); the foundation (scaffold + shared contracts / Wave-0 module to build and FREEZE first); the crown-jewel (the security-critical or core-invariant component to verify hardest, plus the exact invariant); any risky external deps/toolchain that need an up-front spike before building; and the ordered build WAVES — modules within a wave MUST touch disjoint files (so they build in parallel without collision); give each module owned path-globs, the blueprint sections it implements, and machine-checkable acceptance criteria. Constraints: ${constraints}. Return structured.`,
+  `Read the blueprint at ${blueprintPath} IN FULL (repo: ${repoPath}). Produce a concrete build plan: the build command + test command (hints: build=${buildCmdHint}, test=${testCmdHint}; env-prefix hint: ${JSON.stringify(envPrefix)}); the foundation (scaffold + shared contracts / Wave-0 module to build and FREEZE first); the crown-jewel (the security-critical or core-invariant component to verify hardest, plus the exact invariant); any risky external deps/toolchain that need an up-front spike before building; and the ordered build WAVES. DEFAULT TO SERIAL — most projects are a near-linear dependency chain, so prefer fewer, coarser modules built one at a time (a single agent can implement several small, related files in sequence). Split a wave into PARALLEL modules ONLY when they are genuinely independent (disjoint files, no compile-time dependency between them in that wave) AND each is large/self-contained enough that giving it its own focused agent context beats one agent doing them in sequence — here parallelism buys context isolation more than wall-clock (e.g. a single-crate build shares one target-dir lock, so concurrent builds mostly serialize). For each module give owned path-globs, the blueprint sections it implements, and machine-checkable acceptance criteria; modules sharing a wave MUST own disjoint files. Constraints: ${constraints}. Return structured.`,
   { label: 'plan-build', phase: 'Plan', agentType: 'general-purpose', schema: PLAN_SCHEMA })
 
 const ENV = plan.env_prefix || envPrefix
@@ -74,7 +76,7 @@ let foundation = await agent(
   `Scaffold the project and build the FOUNDATION per ${blueprintPath}: ${plan.foundation}. Create the workspace/skeleton + ALL module stubs + the shared contracts so the dependency graph compiles and later modules only fill in their OWN files (never the shared manifest/contracts). Then fully implement the foundation/shared-contract module. Run \`${ENV} ${B}\` (must compile) + the foundation's tests; fix until green. Repo: ${repoPath}.`,
   { label: 'foundation', phase: 'Foundation', agentType: 'general-purpose', schema: STATUS })
 let fverdict = await agent(
-  `Adversarially verify the foundation — especially the CROWN JEWEL: ${plan.crown_jewel}. Try to BREAK the stated invariant (write throwaway code that SHOULD fail to compile / be rejected, and confirm it is). Run \`${ENV} ${T}\` for the foundation. Return pass=false with specifics if the invariant can be violated or the foundation is incomplete.`,
+  `Adversarially verify the foundation — especially the CROWN JEWEL: ${plan.crown_jewel}. Try to BREAK the stated invariant: write throwaway code that SHOULD be impossible — in a typed/compiled language, code that MUST FAIL TO COMPILE (confirm it does); otherwise, an input or sequence that MUST BE REJECTED at runtime (confirm it is, via a test). Run \`${ENV} ${T}\` for the foundation. Return pass=false with specifics if the invariant can be violated or the foundation is incomplete.`,
   { label: 'verify:foundation', phase: 'Foundation', agentType: 'general-purpose', schema: VERDICT })
 if (!fverdict.pass) {
   foundation = await agent(`Fix the foundation; close every issue: ${JSON.stringify(fverdict.blocking_issues)}. Per ${blueprintPath}. Re-run \`${ENV} ${B} && ${T}\`. Report.`, { label: 'fix:foundation', phase: 'Foundation', agentType: 'general-purpose', schema: STATUS })
