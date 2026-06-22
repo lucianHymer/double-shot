@@ -7,7 +7,8 @@ description: >-
   Runs a two-phase orchestration — plan→blueprint (with a mandatory human feedback gate),
   then blueprint→build-to-green + adversarial review — using the bundled `plan-to-blueprint`
   and `build-from-blueprint` workflows. The main agent orchestrates; the workflows do the
-  building. NOT for quick features or bug fixes.
+  building. NOT for quick features or bug fixes. For an already-aligned, BOUNDED change landing
+  in a GREEN repo — where the full up-front pass would be overkill — use the lighter `americano` skill.
 ---
 
 # Double Shot
@@ -63,4 +64,4 @@ If `${CLAUDE_SKILL_DIR}` isn't available, resolve this installed skill's absolut
 
 ## When NOT to use
 
-A quick feature, a bug fix, or a task without a substantial plan doc — just do it directly or with a single agent. Double-shot is for taking a *real design* all the way to a built product; it spawns many agents and is not free.
+A quick feature, a bug fix, or a task without a substantial plan doc — just do it directly or with a single agent. Double-shot is for taking a *real design* all the way to a built product; it spawns many agents and is not free. For an *already-aligned, bounded* change landing in a green repo, reach for the lighter **`americano`** instead — same two-phase shape, less ceremony.

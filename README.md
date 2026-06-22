@@ -39,8 +39,25 @@ The **feedback gate between the two phases** is the point: you steer once, at th
 | `skills/double-shot/SKILL.md` | The orchestration procedure the main agent follows (understand → align → phase 1 → gate → phase 2 → verify → report). The front door (`/double-shot`). |
 | `skills/double-shot/workflows/plan-to-blueprint.js` | **Phase 1** — fan-out research + design → `BLUEPRINT.md`. |
 | `skills/double-shot/workflows/build-from-blueprint.js` | **Phase 2** — derive the module DAG, build the foundation + verify the crown-jewel, build modules in disjoint-file waves, loop to green, adversarial review + triage. |
+| `skills/americano/SKILL.md` | **Americano** — the watered-down double-shot (`/americano`): a lighter front door for an *already-aligned, bounded* change to a *green* repo. |
+| `skills/americano/workflows/americano-plan.js` | Americano Phase 1 — bounded research + one design pass/dimension + one adversarial critique → a build-ready blueprint (lighter than `plan-to-blueprint`). |
+| `skills/americano/workflows/americano-build.js` | Americano Phase 2 — trimmed `build-from-blueprint`: confirm green baseline (**no** scaffold/foundation), build the waves, loop to green, adversarial review. |
 
 The skill is the brain; the workflows are the hands.
+
+## Americano — when the full ceremony is overkill
+
+`double-shot` assumes a cold start and earns its heavy up-front pass (research tournament, scaffold + crown-jewel verify) on big or greenfield work. **`americano`** is its watered-down sibling for when you've *already* hashed out the design and the change is **bounded + lands in a green repo** — the full ceremony would be overkill.
+
+| | double-shot | americano |
+|---|---|---|
+| Use when | greenfield · new foundation · big/risky · needs max rigor | design already aligned · bounded change to a green repo |
+| Phase 1 | full `plan-to-blueprint` (design tournament, loop-until-dry) | bounded `americano-plan` (one design pass/dim, one critique) |
+| Phase 2 | `build-from-blueprint` (scaffold + freeze + crown-jewel verify, then waves) | `americano-build` (confirm green baseline — **no scaffold** — then waves) |
+
+The axis is **how much rigor the change warrants**, not greenfield-vs-brownfield — double-shot is great in mature repos too. If a bounded change turns out bigger than it looked, switch up to double-shot mid-stream. Installing this plugin gives you **both** (`/double-shot` and `/americano`).
+
+> **Dogfooded:** `americano-build` took a real, no-merge-invariant-adjacent feature to a **505-test green** autonomously, and the adversarial review caught a genuine cross-user bug it then fixed.
 
 ## Install
 

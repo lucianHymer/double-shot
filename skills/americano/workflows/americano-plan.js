@@ -1,0 +1,63 @@
+export const meta = {
+  name: 'americano-plan',
+  description: 'Americano phase 1: bounded research (confirm, not explore) -> one design pass per dimension -> one adversarial critique -> a build-ready blueprint doc. The watered-down plan-to-blueprint. Writes the doc; NO build. Feature-specific content arrives via args (researchTargets, designDimensions, invariants).',
+  phases: [
+    { title: 'Research', detail: 'targeted readers that CONFIRM specifics (the design is already aligned), not open exploration' },
+    { title: 'Design', detail: 'one pass per orthogonal dimension' },
+    { title: 'Critique', detail: 'one adversarial round vs the stated invariants — hunt runtime-breakers' },
+    { title: 'Synthesize', detail: 'write the build-ready blueprint doc + return outline & must-fixes' },
+  ],
+}
+
+// args: {
+//   feature: string, repoPath: string, outDoc: string, invariants: string,
+//   researchTargets:  [{ label, prompt }],
+//   designDimensions: [{ label, prompt, uses?: number[] }],  // uses = research indices to feed in (default: all)
+//   styleRef?: string                                        // an existing plan doc to match in voice/shape
+// }
+// Robust: the harness may hand `args` through as a JSON STRING rather than a parsed object.
+const a = (typeof args === 'string') ? JSON.parse(args) : (args || {})
+const repoPath = a.repoPath || '.'
+const feature = a.feature || 'feature'
+const outDoc = a.outDoc || `docs/${feature}-plan-v1.md`
+const researchTargets = a.researchTargets || []
+const designDimensions = a.designDimensions || []
+const invariants = a.invariants || '(none stated — infer the repo conventions; call out anything load-bearing you find.)'
+const styleRef = a.styleRef ? `Match the structure/voice of the existing plan doc at ${a.styleRef}.` : ''
+
+if (!researchTargets.length || !designDimensions.length) {
+  log('americano-plan: args.researchTargets[] and args.designDimensions[] are required. Aborting.')
+  return { error: 'missing researchTargets/designDimensions' }
+}
+
+phase('Research')
+const research = await parallel(researchTargets.map((t) => () =>
+  agent(
+    `${t.prompt}\n\nRepo: ${repoPath}. Report CONCISELY (bullets with file:line, no large code dumps). This is CONFIRM-not-explore: the design is largely settled — nail the specifics a build will need, and flag anything you find that CONTRADICTS the assumed design.`,
+    { label: `research:${t.label}`, phase: 'Research', agentType: 'Explore' })))
+log(`Research: ${research.filter(Boolean).length}/${researchTargets.length} done.`)
+
+phase('Design')
+const design = await parallel(designDimensions.map((d) => () => {
+  const idx = Array.isArray(d.uses) ? d.uses : research.map((_, j) => j)
+  const ctx = idx.map((j) => research[j]).filter(Boolean).join('\n\n---\n\n')
+  return agent(
+    `${d.prompt}\n\nProduce a CONCRETE design with exact code touch-points (file:line). Call out every risk to the stated invariants.\n\nINVARIANTS (do not violate):\n${invariants}\n\nRESEARCH CONTEXT:\n${ctx}`,
+    { label: `design:${d.label}`, phase: 'Design', effort: 'high' })
+}))
+log(`Design: ${design.filter(Boolean).length}/${designDimensions.length} done.`)
+
+phase('Critique')
+const designsBlob = design.map((d, i) => `### ${(designDimensions[i] || {}).label}\n${d}`).filter(Boolean).join('\n\n')
+const critique = await agent(
+  `You are an adversarial reviewer. Try to BREAK the following design for "${feature}" (repo: ${repoPath}). Be skeptical and concrete. For EACH issue give: severity (blocker/should-fix/note), where (file:line), and the fix. Specifically check it does NOT violate any stated invariant, and hunt for RUNTIME-BREAKERS (references to nonexistent tables/functions/columns), races, migration hazards, and untested edge cases.\n\nINVARIANTS:\n${invariants}\n\nDESIGNS:\n${designsBlob}\n\nReturn a PRIORITIZED list of must-fixes + notes.`,
+  { label: 'critique', phase: 'Critique', effort: 'high' })
+log('Critique done — writing the blueprint.')
+
+phase('Synthesize')
+const researchBlob = research.map((r, i) => `## research:${researchTargets[i].label}\n${r}`).filter(Boolean).join('\n\n')
+const summary = await agent(
+  `Write a BUILD-READY blueprint for "${feature}" by combining the research, designs, and adversarial critique below. WRITE IT to ${repoPath}/${outDoc} with the Write tool. ${styleRef} It must let a FRESH-CONTEXT build agent execute it cold (it is the hand-off; the user may clear context before building). Required sections:\n1. Motivation & what it changes.\n2. Invariants to preserve (one line each) — fold the critique's BLOCKERS in as hard constraints.\n3..N. One section per design dimension — the concrete design + exact touch-points (file:line).\n- DB migrations (if any) + their safety.\n- Build plan: ORDERED waves/work-items with dependencies (the module DAG the build engine consumes), each with machine-checkable acceptance criteria.\n- Test plan: the new tests + the repo's existing green-gate command.\n- Risks (from the critique) + Out-of-scope (with reasons) + any JUDGMENT CALLS the human should decide at the gate.\nAfter writing the file, RETURN: the doc path, a bullet outline of the sections, the critique's must-fix list VERBATIM, and any flagged judgment calls.\n\nINVARIANTS:\n${invariants}\n\nRESEARCH:\n${researchBlob}\n\nDESIGNS:\n${designsBlob}\n\nCRITIQUE:\n${critique}`,
+  { label: 'synthesize', phase: 'Synthesize', effort: 'high' })
+
+return { doc: outDoc, summary }
