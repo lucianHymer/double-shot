@@ -40,6 +40,23 @@ That's it. The agent reads your plan, aligns with you on the open decisions,
 produces a blueprint and **stops to show you**, then — on your go — builds it
 to green and reports back with the diff.
 
+## Americano — the watered-down double-shot
+
+Installing the plugin also gives you **`americano`** (`/americano`) — the same
+two-phase shape, watered down for an *already-aligned, bounded* change landing in
+a *green* repo, where double-shot's full up-front pass (research tournament,
+scaffold + crown-jewel verify) is overkill. Its build skips the greenfield
+scaffold and goes straight to the waves.
+
+Reach for **double-shot** on greenfield / new-foundation / max-rigor work; reach
+for **americano** when the design's already settled and the change is bounded.
+The axis is *how much rigor the change warrants* — double-shot is great in mature
+repos too.
+
+> Dogfooded: `americano-build` took a real, no-merge-invariant-adjacent feature
+> to a **505-test green** autonomously, and the adversarial review caught a
+> genuine cross-user bug it then fixed.
+
 ## License
 
 GNU Affero General Public License v3.0. See [LICENSE](LICENSE).
